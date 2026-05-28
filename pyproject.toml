@@ -26,8 +26,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/ry-yoshida-private/ImageHash"
-"Bug Tracker" = "https://github.com/ry-yoshida-private/ImageHash/issues"
+Homepage = "https://github.com/ry-yoshida-dev/ImageHash"
+"Bug Tracker" = "https://github.com/ry-yoshida-dev/ImageHash/issues"
 
 [tool.setuptools]
 package-data = { "image_hash" = ["py.typed"] }
