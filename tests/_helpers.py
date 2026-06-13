@@ -9,6 +9,7 @@ import numpy as np
 
 from image_hash.method import HashMethod
 from image_hash.hasher import ImageHasher
+from image_hash.types import NumericArray
 from image_hash.wavelet import WaveletHash
 
 
@@ -22,9 +23,9 @@ def build_hasher(method: HashMethod) -> ImageHasher:
     return ImageHasher.build(method=method)
 
 
-def load_images_from_paths(paths: dict[str, Path]) -> dict[str, np.ndarray]:
+def load_images_from_paths(paths: dict[str, Path]) -> dict[str, NumericArray]:
     """Load images from paths. Raises if any path is invalid."""
-    images: dict[str, np.ndarray] = {}
+    images: dict[str, NumericArray] = {}
     for name, path in paths.items():
         path = str(path)
         img = cv2.imread(path)

@@ -16,15 +16,16 @@ except ImportError:
 
 from image_hash.method import HashMethod
 from image_hash.hasher import ImageHasher
+from image_hash.types import FloatArray, NumericArray
 
 from _helpers import build_hasher, load_images_from_paths
 
 
 def run_cross_distance(
     hasher: ImageHasher,
-    images: dict[str, np.ndarray],
+    images: dict[str, NumericArray],
     method: HashMethod,
-) -> np.ndarray:
+) -> FloatArray:
     """
     Compute hashes for all images and return the cross distance matrix.
     Handles bit-convertible vs vector methods internally.
@@ -42,7 +43,7 @@ def run_cross_distance(
 if pytest is not None:
 
     @pytest.mark.parametrize("method", list(HashMethod))
-    def test_cross_distance_dummy(method: HashMethod, dummy_images: dict[str, np.ndarray]):
+    def test_cross_distance_dummy(method: HashMethod, dummy_images: dict[str, NumericArray]):
         """Each method: build hasher, compute cross distance on dummy images; diagonal is 0."""
         hasher = build_hasher(method)
         cross_dist = run_cross_distance(hasher, dummy_images, method)
@@ -50,7 +51,7 @@ if pytest is not None:
         assert cross_dist.shape == (n, n)
         np.testing.assert_array_almost_equal(np.diag(cross_dist), 0)
 
-    def test_cross_distance_real_paths(real_images: dict[str, np.ndarray]):
+    def test_cross_distance_real_paths(real_images: dict[str, NumericArray]):
         """
         Run all methods on real images from data/; print timing and matrix.
         Skipped when data/source.jpg, data/positive.jpg, data/negative.jpg are not present.

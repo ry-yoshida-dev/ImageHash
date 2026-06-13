@@ -1,7 +1,9 @@
+
 import numpy as np
 from scipy.spatial.distance import cdist
 
 from ..hasher import ImageHasher
+from ..types import FloatArray, NumericArray
 
 
 class VectorHasher(ImageHasher):
@@ -24,9 +26,9 @@ class VectorHasher(ImageHasher):
 
     def measure_cross_distance(
         self, 
-        hash_one: np.ndarray, 
-        hash_two: np.ndarray
-        ) -> np.ndarray:
+        hash_one: NumericArray, 
+        hash_two: NumericArray
+        ) -> FloatArray:
         """
         Measure cross distance(s) between hash_one and hash_two.
 
@@ -51,8 +53,8 @@ class VectorHasher(ImageHasher):
 
     def measure_pairwise_distance(
         self, 
-        hash_values: np.ndarray
-        ) -> np.ndarray:
+        hash_values: NumericArray
+        ) -> FloatArray:
         """
         Measure pairwise distance matrix between multiple hashes (all pairs).
 

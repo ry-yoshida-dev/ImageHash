@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from .method import HashMethod
+from .types import FloatArray, IntegerArray, NumericArray, UInt8Array
 from .wavelet import WaveletHash
 
 
@@ -21,8 +22,8 @@ class ImageHasher(ABC):
 
     def compute(
         self, 
-        image: np.ndarray
-        ) -> np.ndarray:
+        image: NumericArray
+        ) -> NumericArray:
         """
         Compute hash value from an image using the underlying hash object (_obj).
 
@@ -42,7 +43,7 @@ class ImageHasher(ABC):
         return self.hash_obj.compute(image).flatten()
 
     @staticmethod
-    def to_binary(arr: np.ndarray) -> np.ndarray:
+    def to_binary(arr: NumericArray) -> IntegerArray:
         """
         Convert hash array(s) (e.g. uint8 bytes) to binary array(s) (0/1).
         Use this before measure_* when the hash is raw bytes.
@@ -60,19 +61,19 @@ class ImageHasher(ABC):
             - 1D input -> 1D binary, shape (num_bits,) dtype uint8, values 0 or 1.
             - 2D input -> 2D binary, shape (N, num_bits) for use with measure_pairwise_distance.
         """
-        arr = np.asarray(arr).astype(np.uint8)
-        if arr.ndim == 1:
-            return np.unpackbits(arr)
-        if arr.ndim == 2:
-            return np.unpackbits(arr, axis=1)
+        arr_u8: UInt8Array = np.asarray(arr).astype(np.uint8)
+        if arr_u8.ndim == 1:
+            return np.unpackbits(arr_u8)
+        if arr_u8.ndim == 2:
+            return np.unpackbits(arr_u8, axis=1)
         raise ValueError("arr must be 1D (single hash) or 2D (stack of hashes).")
 
     @abstractmethod
     def measure_cross_distance(
         self,
-        hash_one: np.ndarray,
-        hash_two: np.ndarray,
-        ) -> np.ndarray:
+        hash_one: NumericArray,
+        hash_two: NumericArray,
+        ) -> FloatArray:
         """
         Measure cross distance(s) between hash_one and hash_two.
         For bit methods, inputs must be already binarized (use to_binary() if needed).
@@ -94,8 +95,8 @@ class ImageHasher(ABC):
     @abstractmethod
     def measure_pairwise_distance(
         self, 
-        hash_values: np.ndarray
-        ) -> np.ndarray:
+        hash_values: NumericArray
+        ) -> FloatArray:
         """
         Measure pairwise distance matrix between multiple hashes (all pairs).
 

@@ -31,6 +31,7 @@ CLI and core logic for image perceptual hashing.
 
 | File / Dir | Role |
 |------------|------|
+| [types.py](types.py) | Shared NumPy array type aliases (`NumericArray`, `FloatArray`, `IntegerArray`) |
 | [method.py](method.py) | `HashMethod` enum and method metadata |
 | [hasher.py](hasher.py) | Base class and factory for image hashing |
 | [hashers/](hashers/) | Bit-based (Hamming) and vector-based (Euclidean) hasher implementations. See [hashers/README.md](hashers/README.md) |

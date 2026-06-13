@@ -1,46 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol, cast
+from typing import cast
 
 import cv2
 import numpy as np
-import pywt  # type: ignore[import-untyped]
 
 from .mode import WaveletMode
-
-type DetailCoeff2D = tuple[np.ndarray, np.ndarray, np.ndarray]
-type Coeffs2D = list[np.ndarray | DetailCoeff2D]
-
-
-class WaveletSpec(Protocol):
-    dec_len: int
-
-
-class PywtModule(Protocol):
-    def wavedec2(
-        self,
-        data: np.ndarray,
-        wavelet: str,
-        mode: str = "symmetric",
-        level: int | None = None,
-        axes: tuple[int, int] = (-2, -1),
-    ) -> Coeffs2D: ...
-
-    def waverec2(
-        self,
-        coeffs: Coeffs2D,
-        wavelet: str,
-        mode: str = "symmetric",
-        axes: tuple[int, int] = (-2, -1),
-    ) -> np.ndarray: ...
-
-    def Wavelet(self, name: str) -> WaveletSpec: ...
-
-    def dwt_max_level(self, data_len: int, filter_len: int) -> int: ...
-
-
-PYWT = cast(PywtModule, pywt)
+from .protocols import PYWT
+from ..types import FloatArray, NumericArray
 
 
 @dataclass
@@ -65,8 +33,8 @@ class WaveletHash:
 
     def compute(
         self,
-        image: np.ndarray
-    ) -> np.ndarray:
+        image: NumericArray
+    ) -> NumericArray:
         if image.ndim == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
@@ -82,11 +50,14 @@ class WaveletHash:
 
         dwt_level = self._compute_safe_dwt_level(image_scale)
         coeffs = PYWT.wavedec2(float_img, self.mode.value, level=dwt_level)
-        dwt_low = cast(np.ndarray, coeffs[0])
+        dwt_low = cast(FloatArray, coeffs[0])
 
         if dwt_low.shape != (self.hash_size, self.hash_size):
-            dwt_low = cv2.resize(
-                dwt_low, (self.hash_size, self.hash_size), interpolation=cv2.INTER_AREA
+            dwt_low = cast(
+                FloatArray,
+                cv2.resize(
+                    dwt_low, (self.hash_size, self.hash_size), interpolation=cv2.INTER_AREA
+                ),
             )
 
         threshold = float(np.median(dwt_low))
@@ -95,16 +66,16 @@ class WaveletHash:
 
     def compare(
         self,
-        hash_one: np.ndarray,
-        hash_two: np.ndarray
+        hash_one: NumericArray,
+        hash_two: NumericArray
     ) -> float:
         a = np.unpackbits(np.asarray(hash_one, dtype=np.uint8))
         b = np.unpackbits(np.asarray(hash_two, dtype=np.uint8))
         return float(np.count_nonzero(a != b))
 
     def _resize_and_normalize(
-        self, gray: np.ndarray, image_scale: int
-    ) -> np.ndarray:
+        self, gray: NumericArray, image_scale: int
+    ) -> FloatArray:
         resized = cv2.resize(
             gray, (image_scale, image_scale), interpolation=cv2.INTER_AREA
         )
@@ -112,11 +83,11 @@ class WaveletHash:
 
     def _remove_max_haar_ll(
         self,
-        img_float: np.ndarray,
+        img_float: FloatArray,
         ll_max_level: int
-    ) -> np.ndarray:
+    ) -> FloatArray:
         coeffs = PYWT.wavedec2(img_float, "haar", level=ll_max_level)
-        dwt_low = cast(np.ndarray, coeffs[0])
+        dwt_low = cast(FloatArray, coeffs[0])
         dwt_low *= 0
         coeffs[0] = dwt_low
         return PYWT.waverec2(coeffs, "haar")

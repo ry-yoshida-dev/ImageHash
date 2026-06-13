@@ -7,6 +7,8 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from image_hash.types import NumericArray
+
 from _helpers import build_hasher, load_images_from_paths
 
 
@@ -40,7 +42,7 @@ def real_images_available(default_image_paths: dict[str, Path]) -> bool:
 # --- Image data ---
 
 @pytest.fixture
-def dummy_images() -> dict[str, np.ndarray]:
+def dummy_images() -> dict[str, NumericArray]:
     """In-memory random BGR images (no file I/O)."""
     h, w = 64, 64
     rng = np.random.default_rng(114514)
