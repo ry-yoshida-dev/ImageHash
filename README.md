@@ -2,40 +2,39 @@
 
 ## Overview
 
-Compare images using perceptual hash methods. Computes hashes for a source image and positive/negative references, then reports pairwise distances and timing.
-See the [image_hash README](src/image_hash/README.md#available-methods) for method details (Pros/Cons).
+Compute perceptual hashes of images and measure distances between them. Methods are selected with `HashMethod`.
 
-## Requirements
+| `HashMethod` | Algorithm | Distance |
+|--------------|-----------|----------|
+| `P` | PHash | Hamming |
+| `AVERAGE` | AverageHash | Hamming |
+| `BLOCK_MEAN` | BlockMeanHash | Hamming |
+| `MARR_HILDRETH` | MarrHildrethHash | Hamming |
+| `RADIAL_VARIANCE` | RadialVarianceHash | Hamming |
+| `WAVELET` | WaveletHash | Hamming |
+| `COLOR_MOMENT` | ColorMomentHash | Euclidean |
 
-- Python 3.12+
-- numpy, opencv-contrib-python, scipy
+## Installation
 
-## Setup
+Requires Python 3.12+.
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Example
-
-Load an image with OpenCV and compute its hash:
+## Usage
 
 ```python
 import cv2
 from image_hash import HashMethod, ImageHasher
 
-# Load image (BGR or grayscale)
-image = cv2.imread("path/to/image.jpg")
+image = cv2.imread("path/to/image.jpg")  # BGR or grayscale
 
-# Build hasher with desired method (e.g. PHash)
 hasher = ImageHasher.build(HashMethod.P)
-
-# Compute hash (e.g. 8-byte ndarray)
-hash_value = hasher.compute(image)
-print(hash_value)  # e.g. [123 45 67 89 ...]
-
-# As bit array (for Hamming distance)
-hash_bits = ImageHasher.to_binary(hash_value)
-print(hash_bits.shape)  # (64,) for 64-bit methods
+hash_value = hasher.compute(image)  # e.g. 8-byte ndarray
+hash_bits = ImageHasher.to_binary(hash_value)  # (64,) for 64-bit methods
 ```
 
+## Development
+
+[tests/test.py](tests/test.py) also runs as a script that prints cross-distance matrices and timing for `source.jpg`, `positive.jpg`, and `negative.jpg` in a data directory; see `python tests/test.py --help`.
