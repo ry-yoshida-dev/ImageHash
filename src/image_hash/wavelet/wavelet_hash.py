@@ -6,9 +6,9 @@ from typing import cast
 import cv2
 import numpy as np
 
+from ..types import FloatArray, NumericArray
 from .mode import WaveletMode
 from .protocols import PYWT
-from ..types import FloatArray, NumericArray
 
 
 @dataclass
@@ -28,24 +28,45 @@ class WaveletHash:
     def __post_init__(self) -> None:
         if self.hash_size <= 0 or (self.hash_size & (self.hash_size - 1)) != 0:
             raise ValueError("hash_size must be a power of 2")
-        if self.image_scale is not None and (self.image_scale & (self.image_scale - 1)) != 0:
+        if (
+            self.image_scale is not None
+            and (self.image_scale & (self.image_scale - 1)) != 0
+        ):
             raise ValueError("image_scale must be a power of 2")
 
-    def compute(
-        self,
-        image: NumericArray
-    ) -> NumericArray:
+    def compute(self, image: NumericArray) -> NumericArray:
+        """
+        Compute the wavelet hash of an image.
+
+        Parameters
+        ----------
+        image : np.ndarray
+            BGR or grayscale image (OpenCV-style).
+
+        Returns
+        -------
+        np.ndarray
+            Packed hash bits, shape (hash_size**2 / 8,), dtype uint8.
+
+        Raises
+        ------
+        ValueError
+            If the image is not 2D or 3D, or is too small for the hash size or the wavelet mode.
+        """
+        if image.ndim not in (2, 3):
+            raise ValueError(f"image must be 2D or 3D, got {image.ndim}D.")
         if image.ndim == 3:
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         else:
             gray = image
 
-        h, w = gray.shape
-        image_scale = self._compute_image_scale(h=h, w=w)
+        height, width = cast(tuple[int, int], gray.shape)
+        image_scale = self._compute_image_scale(h=height, w=width)
         float_img = self._resize_and_normalize(gray, image_scale)
 
         if self.remove_max_haar_ll:
-            ll_max_level = int(np.log2(image_scale))
+            # image_scale is a power of 2, so this is its exact base-2 logarithm.
+            ll_max_level = image_scale.bit_length() - 1
             float_img = self._remove_max_haar_ll(float_img, ll_max_level)
 
         dwt_level = self._compute_safe_dwt_level(image_scale)
@@ -56,7 +77,9 @@ class WaveletHash:
             dwt_low = cast(
                 FloatArray,
                 cv2.resize(
-                    dwt_low, (self.hash_size, self.hash_size), interpolation=cv2.INTER_AREA
+                    dwt_low,
+                    (self.hash_size, self.hash_size),
+                    interpolation=cv2.INTER_AREA,
                 ),
             )
 
@@ -64,27 +87,34 @@ class WaveletHash:
         hash_bit_mask = (dwt_low > threshold).astype(np.uint8).flatten()
         return np.packbits(hash_bit_mask)
 
-    def compare(
-        self,
-        hash_one: NumericArray,
-        hash_two: NumericArray
-    ) -> float:
+    def compare(self, hash_one: NumericArray, hash_two: NumericArray) -> float:
+        """
+        Measure the Hamming distance between two packed hashes.
+
+        Parameters
+        ----------
+        hash_one : np.ndarray
+            First packed hash (uint8 bytes).
+        hash_two : np.ndarray
+            Second packed hash (uint8 bytes).
+
+        Returns
+        -------
+        float
+            Number of differing bits.
+        """
         a = np.unpackbits(np.asarray(hash_one, dtype=np.uint8))
         b = np.unpackbits(np.asarray(hash_two, dtype=np.uint8))
-        return float(np.count_nonzero(a != b))
+        return float(np.count_nonzero(np.not_equal(a, b)))
 
-    def _resize_and_normalize(
-        self, gray: NumericArray, image_scale: int
-    ) -> FloatArray:
+    def _resize_and_normalize(self, gray: NumericArray, image_scale: int) -> FloatArray:
         resized = cv2.resize(
             gray, (image_scale, image_scale), interpolation=cv2.INTER_AREA
         )
         return np.asarray(resized, dtype=np.float64) / 255.0
 
     def _remove_max_haar_ll(
-        self,
-        img_float: FloatArray,
-        ll_max_level: int
+        self, img_float: FloatArray, ll_max_level: int
     ) -> FloatArray:
         coeffs = PYWT.wavedec2(img_float, "haar", level=ll_max_level)
         dwt_low = cast(FloatArray, coeffs[0])
@@ -92,30 +122,26 @@ class WaveletHash:
         coeffs[0] = dwt_low
         return PYWT.waverec2(coeffs, "haar")
 
-    def _compute_safe_dwt_level(
-        self,
-        image_scale: int
-    ) -> int:
+    def _compute_safe_dwt_level(self, image_scale: int) -> int:
         wavelet = PYWT.Wavelet(self.mode.value)
-        required_level = int(np.log2(image_scale // self.hash_size))
+        scale_ratio = image_scale // self.hash_size
+        if scale_ratio == 0:
+            raise ValueError("hash_size cannot be larger than image_scale.")
+        # Both sizes are powers of 2, so this is the exact base-2 logarithm of their ratio.
+        required_level = scale_ratio.bit_length() - 1
         max_level = PYWT.dwt_max_level(image_scale, wavelet.dec_len)
 
         if required_level > max_level:
             raise ValueError(
                 f"Mode {self.mode.value} requires larger image_scale for decomposition."
             )
-        if required_level < 0:
-            raise ValueError("hash_size cannot be larger than image_scale.")
 
         return required_level
 
-    def _compute_image_scale(
-        self,
-        h: int,
-        w: int
-    ) -> int:
+    def _compute_image_scale(self, h: int, w: int) -> int:
         if self.image_scale is not None:
             return self.image_scale
 
-        image_natural_scale = 2 ** int(np.log2(min(h, w)))
+        # Largest power of 2 that fits in the shorter side.
+        image_natural_scale = 1 << (min(h, w).bit_length() - 1)
         return max(image_natural_scale, self.hash_size)

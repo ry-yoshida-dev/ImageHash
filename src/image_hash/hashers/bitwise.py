@@ -1,33 +1,35 @@
+from typing import override
 
 import numpy as np
-from scipy.spatial.distance import pdist, cdist, squareform
+from scipy.spatial.distance import cdist, pdist, squareform
 
 from ..hasher import ImageHasher
 from ..types import FloatArray, NumericArray
 
 
-class BitwiseHasher(ImageHasher):
+class BitwiseHasher(ImageHasher, is_bit_convertible=True):
     """
     Hasher for bit-convertible methods. Uses Hamming (cityblock) distance.
 
-    Attributes:
+    Attributes
     ----------
     method: HashMethod
         The hash method to use.
     hash_obj: object
         The hash object to use.
     """
+
+    @override
     def __post_init__(self) -> None:
         if not self.method.is_bit_convertible:
             raise ValueError(
                 f"BitwiseHasher requires a bit-convertible method, got {self.method}"
             )
 
+    @override
     def measure_cross_distance(
-        self, 
-        hash_one: NumericArray, 
-        hash_two: NumericArray
-        ) -> FloatArray:
+        self, hash_one: NumericArray, hash_two: NumericArray
+    ) -> FloatArray:
         """
         Measure cross distance(s) between hash_one and hash_two.
 
@@ -47,10 +49,8 @@ class BitwiseHasher(ImageHasher):
         two = np.atleast_2d(hash_two)
         return cdist(one, two, metric="cityblock")
 
-    def measure_pairwise_distance(
-        self, 
-        hash_values: NumericArray
-        ) -> FloatArray:
+    @override
+    def measure_pairwise_distance(self, hash_values: NumericArray) -> FloatArray:
         """
         Measure pairwise distance matrix between multiple hashes (all pairs).
 

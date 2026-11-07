@@ -1,10 +1,12 @@
 from __future__ import annotations
-import cv2
+
 import warnings
-import numpy as np
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Union
+from typing import ClassVar
+
+import cv2
+import numpy as np
 
 from .method import HashMethod
 from .types import FloatArray, IntegerArray, NumericArray, UInt8Array
@@ -15,15 +17,37 @@ from .wavelet import WaveletHash
 class ImageHasher(ABC):
     """
     Base class for hash distance computation.
+
     Use build(method) to get BitwiseHasher or VectorHasher depending on the method.
     """
-    method: HashMethod
-    hash_obj: Union[cv2.img_hash.ImgHashBase, WaveletHash]
 
-    def compute(
-        self, 
-        image: NumericArray
-        ) -> NumericArray:
+    # Concrete hashers register themselves here, so build() needs no import of its subclasses.
+    _implementations: ClassVar[dict[bool, type[ImageHasher]]] = {}
+
+    method: HashMethod
+    hash_obj: cv2.img_hash.ImgHashBase | WaveletHash
+
+    def __init_subclass__(cls, *, is_bit_convertible: bool) -> None:
+        """
+        Register a concrete hasher for bit-convertible or vector methods.
+
+        Parameters
+        ----------
+        is_bit_convertible : bool
+            Whether the subclass handles methods whose hashes convert to bits.
+        """
+        super().__init_subclass__()
+        ImageHasher._implementations[is_bit_convertible] = cls
+
+    @abstractmethod
+    def __post_init__(self) -> None:
+        """
+        Validate the fields after dataclass initialization.
+
+        Concrete hashers check here that the method suits them.
+        """
+
+    def compute(self, image: NumericArray) -> NumericArray:
         """
         Compute hash value from an image using the underlying hash object (_obj).
 
@@ -46,6 +70,7 @@ class ImageHasher(ABC):
     def to_binary(arr: NumericArray) -> IntegerArray:
         """
         Convert hash array(s) (e.g. uint8 bytes) to binary array(s) (0/1).
+
         Use this before measure_* when the hash is raw bytes.
         Supports both a single hash and a stack of hashes in one call.
 
@@ -73,9 +98,10 @@ class ImageHasher(ABC):
         self,
         hash_one: NumericArray,
         hash_two: NumericArray,
-        ) -> FloatArray:
+    ) -> FloatArray:
         """
         Measure cross distance(s) between hash_one and hash_two.
+
         For bit methods, inputs must be already binarized (use to_binary() if needed).
 
         Parameters
@@ -93,10 +119,7 @@ class ImageHasher(ABC):
         """
 
     @abstractmethod
-    def measure_pairwise_distance(
-        self, 
-        hash_values: NumericArray
-        ) -> FloatArray:
+    def measure_pairwise_distance(self, hash_values: NumericArray) -> FloatArray:
         """
         Measure pairwise distance matrix between multiple hashes (all pairs).
 
@@ -113,10 +136,8 @@ class ImageHasher(ABC):
 
     @classmethod
     def build(
-        cls, 
-        method: HashMethod,
-        wavelet_obj: WaveletHash | None = None
-        ) -> ImageHasher:
+        cls, method: HashMethod, wavelet_obj: WaveletHash | None = None
+    ) -> ImageHasher:
         """
         Create BitwiseHasher or VectorHasher according to the method.
 
@@ -126,24 +147,24 @@ class ImageHasher(ABC):
             The hash method to use.
         wavelet_obj: WaveletHash | None
             The wavelet object to use.
+
         Returns
         -------
         ImageHasher
             BitwiseHasher for bit-convertible methods (Hamming distance),
             VectorHasher otherwise (Euclidean distance).
         """
-        from .hashers.bitwise import BitwiseHasher
+        implementation = ImageHasher._implementations[method.is_bit_convertible]
         if method == HashMethod.WAVELET:
             if wavelet_obj is None:
                 wavelet_obj = WaveletHash()
-                warnings.warn("Wavelet object is not provided, using default values.")
-            return BitwiseHasher(method=method, hash_obj=wavelet_obj)
-        else:
-            if wavelet_obj is not None:
-                warnings.warn("Wavelet object is not used for non-WAVELET methods.")
-
-        if method.is_bit_convertible:
-            return BitwiseHasher(method=method, hash_obj=method.object)
-        else:
-            from .hashers.vector import VectorHasher
-            return VectorHasher(method=method, hash_obj=method.object)
+                warnings.warn(
+                    "Wavelet object is not provided, using default values.",
+                    stacklevel=2,
+                )
+            return implementation(method=method, hash_obj=wavelet_obj)
+        if wavelet_obj is not None:
+            warnings.warn(
+                "Wavelet object is not used for non-WAVELET methods.", stacklevel=2
+            )
+        return implementation(method=method, hash_obj=method.object)

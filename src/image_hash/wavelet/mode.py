@@ -5,7 +5,7 @@ class WaveletMode(Enum):
     """
     Wavelet modes.
 
-    Attributes:
+    Attributes
     ----------
     Haar: Haar wavelet
     Daubechies: Daubechies wavelet

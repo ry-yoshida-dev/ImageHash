@@ -1,6 +1,6 @@
-from .method import HashMethod
 from .hasher import ImageHasher
 from .hashers import BitwiseHasher, VectorHasher
+from .method import HashMethod
 from .wavelet import (
     WaveletHash,
     WaveletMode,

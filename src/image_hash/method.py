@@ -1,16 +1,18 @@
-
 from __future__ import annotations
-import cv2
+
 from enum import Enum
-from typing import Union
+from typing import override
+
+import cv2
 
 from .wavelet import WaveletHash
+
 
 class HashMethod(Enum):
     """
     Hash methods.
 
-    Attributes:
+    Attributes
     ----------
     P: P
     AVERAGE: AVERAGE
@@ -20,6 +22,7 @@ class HashMethod(Enum):
     RADIAL_VARIANCE: RADIAL_VARIANCE
     WAVELET: WAVELET
     """
+
     P = "P"
     AVERAGE = "AVERAGE"
     BLOCK_MEAN = "BLOCK_MEAN"
@@ -30,22 +33,40 @@ class HashMethod(Enum):
     # DifferenceHash = "DifferenceHash"
 
     @property
-    def object(self) -> Union[cv2.img_hash.ImgHashBase, WaveletHash]:
+    def object(self) -> cv2.img_hash.ImgHashBase | WaveletHash:
         """
         Get the object of the hash method.
 
-        Returns:
-        ----------
-        Union[cv2.img_hash.ImgHashBase, WaveletHash]: The object of the hash method.
+        Returns
+        -------
+        cv2.img_hash.ImgHashBase | WaveletHash: The object of the hash method.
         """
         match self:
+            case self.P:
+                return cv2.img_hash.PHash.create()
+            case self.AVERAGE:
+                return cv2.img_hash.AverageHash.create()
+            case self.BLOCK_MEAN:
+                return cv2.img_hash.BlockMeanHash.create()
+            case self.COLOR_MOMENT:
+                return cv2.img_hash.ColorMomentHash.create()
+            case self.MARR_HILDRETH:
+                return cv2.img_hash.MarrHildrethHash.create()
+            case self.RADIAL_VARIANCE:
+                return cv2.img_hash.RadialVarianceHash.create()
             case self.WAVELET:
                 return WaveletHash()
-            case _:
-                return getattr(cv2.img_hash, f"{self.opencv_name}_create")()
 
     @property
     def opencv_name(self) -> str:
+        """
+        Name of the hash algorithm, as used by OpenCV's `cv2.img_hash` classes.
+
+        Returns
+        -------
+        str
+            The algorithm name (e.g. "PHash").
+        """
         match self:
             case self.P:
                 return "PHash"
@@ -67,8 +88,8 @@ class HashMethod(Enum):
         """
         Hash size.
 
-        Returns:
-        ----------
+        Returns
+        -------
         int: The size of the hash.
         """
         match self:
@@ -84,8 +105,7 @@ class HashMethod(Enum):
                 return 40
             case self.WAVELET:
                 raise ValueError(
-                    "HashMethod.WAVELET does not have a fixed hash_size. "
-                    "Use WaveletHash.hash_size from your WaveletHash instance instead."
+                    "HashMethod.WAVELET does not have a fixed hash_size. Use WaveletHash.hash_size from your WaveletHash instance instead."
                 )
 
     @property
@@ -93,8 +113,8 @@ class HashMethod(Enum):
         """
         Whether the hash is binary.
 
-        Returns:
-        ----------
+        Returns
+        -------
         bool: Whether the hash is binary.
         """
         match self:
@@ -103,10 +123,10 @@ class HashMethod(Enum):
             case _:
                 return True
 
-    def __str__(self):
+    @override
+    def __str__(self) -> str:
         return self.value
 
-    def __repr__(self):
+    @override
+    def __repr__(self) -> str:
         return self.value
-
-

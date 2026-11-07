@@ -1,3 +1,4 @@
+from typing import override
 
 import numpy as np
 from scipy.spatial.distance import cdist
@@ -6,11 +7,11 @@ from ..hasher import ImageHasher
 from ..types import FloatArray, NumericArray
 
 
-class VectorHasher(ImageHasher):
+class VectorHasher(ImageHasher, is_bit_convertible=False):
     """
     Hasher for non-bit-convertible (vector) methods. Uses Euclidean distance.
 
-    Attributes:
+    Attributes
     ----------
     method: HashMethod
         The hash method to use.
@@ -18,17 +19,17 @@ class VectorHasher(ImageHasher):
         The hash object to use.
     """
 
-    def __post_init__(self) -> None:       
+    @override
+    def __post_init__(self) -> None:
         if self.method.is_bit_convertible:
             raise ValueError(
                 f"VectorHasher requires a non-bit-convertible method, got {self.method}"
             )
 
+    @override
     def measure_cross_distance(
-        self, 
-        hash_one: NumericArray, 
-        hash_two: NumericArray
-        ) -> FloatArray:
+        self, hash_one: NumericArray, hash_two: NumericArray
+    ) -> FloatArray:
         """
         Measure cross distance(s) between hash_one and hash_two.
 
@@ -51,10 +52,8 @@ class VectorHasher(ImageHasher):
         two = np.atleast_2d(hash_two)
         return cdist(one, two, metric="euclidean")
 
-    def measure_pairwise_distance(
-        self, 
-        hash_values: NumericArray
-        ) -> FloatArray:
+    @override
+    def measure_pairwise_distance(self, hash_values: NumericArray) -> FloatArray:
         """
         Measure pairwise distance matrix between multiple hashes (all pairs).
 

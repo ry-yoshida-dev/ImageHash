@@ -37,4 +37,4 @@ hash_bits = ImageHasher.to_binary(hash_value)  # (64,) for 64-bit methods
 
 ## Development
 
-[tests/test.py](tests/test.py) also runs as a script that prints cross-distance matrices and timing for `source.jpg`, `positive.jpg`, and `negative.jpg` in a data directory; see `python tests/test.py --help`.
+[tests/test.py](tests/test.py) also runs as a script that prints cross-distance matrices and timing for `source.jpg`, `positive.jpg`, and `negative.jpg` in a data directory; see `python -m tests.test --help` from the repository root.
